@@ -1,0 +1,6 @@
+line-length = 100
+
+[lint]
+# Schedules are local depot times and "now" is pinned for a reproducible demo,
+# so naive datetimes are intentional in ingestion.
+per-file-ignores = { "ingestion/*.py" = ["DTZ001", "DTZ007"] }

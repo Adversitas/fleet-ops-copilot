@@ -1,0 +1,7 @@
+[
+  {"log_id": "M-01", "vehicle_id": "V-1003", "date": "2026-09-05", "issue": "Brake pad wear detected below threshold", "severity": "high", "resolved": false},
+  {"log_id": "M-02", "vehicle_id": "V-1006", "date": "2026-09-06", "issue": "Engine coolant sensor intermittent fault", "severity": "medium", "resolved": false},
+  {"log_id": "M-03", "vehicle_id": "V-1001", "date": "2026-08-20", "issue": "Routine oil change", "severity": "low", "resolved": true},
+  {"log_id": "M-04", "vehicle_id": "V-1008", "date": "2026-09-07", "issue": "Tire pressure warning, front left", "severity": "medium", "resolved": false},
+  {"log_id": "M-05", "vehicle_id": "V-1002", "date": "2026-07-15", "issue": "Scheduled DOT inspection", "severity": "low", "resolved": true}
+]

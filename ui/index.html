@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Fleet Ops Copilot</title>
+<style>
+  :root {
+    --bg: #0f1420; --panel: #161d2e; --border: #2a3450; --text: #e6e9f2;
+    --muted: #8993ab; --accent: #4f8cff; --high: #ff5d5d; --medium: #f5b942; --low: #4fd18b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, Segoe UI, sans-serif; height: 100vh; }
+  .layout { display: grid; grid-template-columns: 1.4fr 1fr; height: 100vh; }
+  .panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; }
+  header { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  header h1 { font-size: 15px; margin: 0; }
+  header p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+  #chat-log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 85%; padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: var(--accent); color: #fff; }
+  .msg.assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); }
+  .msg.system { align-self: center; color: var(--muted); font-size: 11px; }
+  .trace { font-size: 11px; color: var(--muted); margin-top: 6px; border-top: 1px dashed var(--border); padding-top: 6px; }
+  #chat-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); }
+  #chat-input { flex: 1; background: var(--panel); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px; font-size: 13px; }
+  button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 16px; font-size: 13px; cursor: pointer; }
+  button.reject { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .side { display: flex; flex-direction: column; overflow-y: auto; }
+  section { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  section h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 10px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 12px; }
+  .sev { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 999px; margin-right: 6px; }
+  .sev.high { background: rgba(255,93,93,0.15); color: var(--high); }
+  .sev.medium { background: rgba(245,185,66,0.15); color: var(--medium); }
+  .sev.low { background: rgba(79,209,139,0.15); color: var(--low); }
+  .card-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .empty { color: var(--muted); font-size: 12px; }
+  .audit-row { font-size: 11px; color: var(--muted); padding: 4px 0; border-bottom: 1px dashed var(--border); }
+  .audit-row b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="panel">
+    <header>
+      <h1>Fleet Ops Copilot</h1>
+      <p>Ask about SLA risk, maintenance, or driver notes. Alerts require dispatcher approval &rarr;</p>
+    </header>
+    <div id="chat-log"></div>
+    <form id="chat-form">
+      <input id="chat-input" autocomplete="off" placeholder="e.g. Which trucks are at risk of missing SLA today, and why?" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+  <div class="side">
+    <section>
+      <h2>Pending Approvals</h2>
+      <div id="approvals"><p class="empty">No pending approvals.</p></div>
+    </section>
+    <section style="flex:1; overflow-y:auto;">
+      <h2>Audit Log</h2>
+      <div id="audit"><p class="empty">No activity yet.</p></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const chatLog = document.getElementById('chat-log');
+const chatForm = document.getElementById('chat-form');
+const chatInput = document.getElementById('chat-input');
+const approvalsEl = document.getElementById('approvals');
+const auditEl = document.getElementById('audit');
+
+function addMessage(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  chatLog.appendChild(div);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return div;
+}
+
+chatForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const message = chatInput.value.trim();
+  if (!message) return;
+  addMessage('user', message);
+  chatInput.value = '';
+  const thinking = addMessage('assistant', 'Thinking...');
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Request failed');
+    thinking.textContent = data.reply;
+    if (data.trace && data.trace.length) {
+      const traceDiv = document.createElement('div');
+      traceDiv.className = 'trace';
+      traceDiv.textContent = 'Tools used: ' + data.trace.map(t => t.tool).join(' -> ');
+      thinking.appendChild(traceDiv);
+    }
+  } catch (err) {
+    thinking.textContent = 'Error: ' + err.message;
+  }
+  refreshApprovals();
+  refreshAudit();
+});
+
+// Alert text is written by the model, which reads free-text driver notes: treat it as
+// untrusted and never insert it as raw HTML (prompt injection -> XSS).
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[c]);
+}
+
+async function refreshApprovals() {
+  const res = await fetch('/api/approvals');
+  const items = await res.json();
+  if (!items.length) {
+    approvalsEl.innerHTML = '<p class="empty">No pending approvals.</p>';
+    return;
+  }
+  approvalsEl.innerHTML = '';
+  for (const item of items) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <span class="sev ${esc(item.severity)}">${esc(item.severity.toUpperCase())}</span>
+      <b>${esc(item.vehicle_id)}</b>
+      <div style="margin-top:6px;">${esc(item.message)}</div>
+      <div class="card-actions">
+        <button data-id="${esc(item.id)}" data-approve="true">Approve</button>
+        <button class="reject" data-id="${esc(item.id)}" data-approve="false">Reject</button>
+      </div>
+    `;
+    approvalsEl.appendChild(card);
+  }
+  approvalsEl.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await fetch(`/api/approvals/${btn.dataset.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approve: btn.dataset.approve === 'true' }),
+      });
+      refreshApprovals();
+      refreshAudit();
+    });
+  });
+}
+
+async function refreshAudit() {
+  const res = await fetch('/api/audit-log');
+  const items = await res.json();
+  if (!items.length) {
+    auditEl.innerHTML = '<p class="empty">No activity yet.</p>';
+    return;
+  }
+  auditEl.innerHTML = '';
+  for (const item of items.slice().reverse()) {
+    const row = document.createElement('div');
+    row.className = 'audit-row';
+    const time = new Date(item.timestamp).toLocaleTimeString();
+    row.innerHTML = `<b>${esc(item.kind)}</b> by ${esc(item.actor)} &middot; ${esc(time)}`;
+    auditEl.appendChild(row);
+  }
+}
+
+refreshApprovals();
+refreshAudit();
+</script>
+</body>
+</html>

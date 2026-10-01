@@ -1,0 +1,9 @@
+vehicle_id,make,model,year,depot_id
+V-1001,Freightliner,Cascadia,2019,DEPOT-CHI
+V-1002,Volvo,VNL,2021,DEPOT-CHI
+V-1003,Kenworth,T680,2018,DEPOT-ATL
+V-1004,Peterbilt,579,2020,DEPOT-ATL
+V-1005,Freightliner,Cascadia,2022,DEPOT-DAL
+V-1006,Volvo,VNL,2017,DEPOT-DAL
+V-1007,Kenworth,T680,2023,DEPOT-CHI
+V-1008,Peterbilt,579,2019,DEPOT-ATL

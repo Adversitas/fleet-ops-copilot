@@ -1,0 +1,7 @@
+Driver: Tom Ridge (D-03)
+Vehicle: V-1003
+Date: 2026-09-08
+
+Notes: Departed Atlanta later than planned, waiting on load documents. Also brakes
+felt soft going into the depot yesterday, mentioned it to the shop but not sure it
+got logged. Will keep an eye on it on the Nashville run.

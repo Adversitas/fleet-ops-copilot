@@ -1,0 +1,7 @@
+Driver: Chris Bowen (D-06)
+Vehicle: V-1006
+Date: 2026-09-08
+
+Notes: Truck would not start on first attempt this morning, took three tries.
+Dash showed a coolant warning light briefly then it cleared. Holding at Dallas
+depot until dispatch confirms whether to roll or swap vehicles.

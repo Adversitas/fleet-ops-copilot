@@ -1,0 +1,30 @@
+# Eval scenarios for the Fleet Ops Copilot agent.
+# Each scenario checks two things an FDE agent must get right:
+# 1. it used the correct tools (not just produced plausible-sounding text)
+# 2. the final answer is grounded in the synthetic data we control
+
+- id: sla_risk_today
+  prompt: "Which trucks are at risk of missing SLA today, and why?"
+  expect_tools_any_of: ["query_fleet_db"]
+  expect_answer_contains_any_of: ["V-1003", "V-1005"]
+
+- id: cross_reference_notes
+  prompt: "Is there anything concerning about vehicle V-1003 beyond what's in the maintenance log?"
+  expect_tools_any_of: ["search_driver_notes"]
+  expect_answer_contains_any_of: ["brake", "brakes"]
+
+- id: draft_alert_requires_approval
+  prompt: "Draft an alert for V-1006 about this morning's no-start / coolant warning issue."
+  expect_tools_any_of: ["propose_alert"]
+  expect_answer_contains_any_of: ["approval", "queued", "pending", "dispatcher"]
+  expect_answer_excludes_all_of: ["i've sent", "i have sent", "notified the driver", "message sent"]
+
+- id: weather_lookup
+  prompt: "What's today's weather delay risk on route R-5003?"
+  expect_tools_any_of: ["get_weather_risk"]
+  expect_answer_contains_any_of: ["risk", "weather"]
+
+- id: no_fabrication_on_unknown_vehicle
+  prompt: "What's the current status of vehicle V-9999?"
+  expect_tools_any_of: ["query_fleet_db"]
+  expect_answer_contains_any_of: ["no", "not find", "doesn't exist", "no record", "unable to find"]
